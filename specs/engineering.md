@@ -19,9 +19,11 @@
 - **ThreadPoolTaskExecutor**: `corePoolSize`는 `gridSize`와 일치시키고, `queueCapacity`는 `0`으로 설정하여 워커가 즉시 작업을 처리하도록 합니다.
 
 ## 🛡️ 운영 안전장치
-1. **커넥션 풀 관리**: HikariCP의 `maximumPoolSize`는 스레드 기아 현상을 방지하기 위해 최소 `Grid Size + 5` 이상으로 설정합니다.
+1. **커넥션 풀 관리**: HikariCP의 `maximumPoolSize`는 스레드 기아 현상을 방지하기 위해 다음 기준을 따릅니다.
+    - **최소 기준**: `Grid Size + 5` 이상.
+    - **대규모(100만 건↑) 권장**: `(Grid Size * 2) + 10` 이상. (메타데이터 업데이트 경합 및 I/O 지연 대비)
 2. **관찰 가능성**: 모든 워커 스레드는 추적 가능한 로그를 위해 MDC(Mapped Diagnostic Context)에 `Partition-ID`를 포함해야 합니다.
-3. **멱등성 보장**: 모든 Writer는 "Upsert" 로직(`ON CONFLICT` 등)을 사용하거나 삽입 전 기존 정산 결과 존재 여부를 확인해야 합니다.
+3. **멱등성 보장**: 3중 방어 전략을 권장합니다. (Unique Index + Upsert 전략 + 원본 데이터 상태 기반 낙관적 잠금)
 4. **회복 탄력성**: 외부 API 호출 시 타임아웃(< 3초)을 설정하고 서킷 브레이커(Resilience4j)를 적용합니다.
 
 ## ✅ 완료 정의 (DOD)
